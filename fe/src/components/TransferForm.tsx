@@ -1,27 +1,29 @@
 import { useState, useEffect } from 'react'
-
-import {
-  calculateTransferFee,
-  convertJPYtoVND,
-  convertVNDtoJPY,
-  formatCurrency,
-  formatNumber
-} from '../utils/calculations'
-import { getExchangeRate } from '../utils/exchangeRateService'
-import type { Transaction } from '../types'
+import type { Transaction, InputMode, TransferPreviewResponse } from '../types'
+import * as api from '../services/api'
 
 interface TransferFormProps {
   onTransactionComplete: (transaction: Transaction) => void
+}
+
+const formatNumber = (num: number): string => {
+  return num.toLocaleString('en-US')
+}
+
+const formatCurrency = (amount: number, currency: 'JPY' | 'VND'): string => {
+  const formatted = formatNumber(amount)
+  return currency === 'JPY' ? `¥${formatted}` : `${formatted} ₫`
 }
 
 export const TransferForm = ({ onTransactionComplete }: TransferFormProps) => {
   const [jpyAmount, setJpyAmount] = useState<string>('')
   const [vndAmount, setVndAmount] = useState<string>('')
   const [exchangeRate, setExchangeRate] = useState<number>(0)
+  const [preview, setPreview] = useState<TransferPreviewResponse | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
+  const [calculating, setCalculating] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [activeInput, setActiveInput] = useState<'JPY' | 'VND'>('JPY')
+  const [activeInput, setActiveInput] = useState<InputMode>('JPY_INPUT')
 
   useEffect(() => {
     fetchExchangeRate()
@@ -30,47 +32,78 @@ export const TransferForm = ({ onTransactionComplete }: TransferFormProps) => {
   const fetchExchangeRate = async () => {
     try {
       setLoading(true)
-      const rate = await getExchangeRate()
-      setExchangeRate(rate)
+      const rateData = await api.getExchangeRate()
+      setExchangeRate(rateData.rate)
       setError('')
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
-      setError('Failed to fetch exchange rate. Using fallback rate.')
-      setExchangeRate(171.5)
+      setError('Failed to fetch exchange rate from server.')
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
+  const fetchPreview = async (inputMode: InputMode, jpyValue?: number, vndValue?: number) => {
+    try {
+      setCalculating(true)
+      setError('')
+
+      const request = {
+        input_mode: inputMode,
+        ...(inputMode === 'JPY_INPUT' ? { send_amount_jpy: jpyValue } : { receive_amount_vnd: vndValue })
+      }
+
+      const previewData = await api.previewTransfer(request)
+      setPreview(previewData)
+
+      // Update the other field based on preview
+      if (inputMode === 'JPY_INPUT') {
+        setVndAmount(previewData.receive_amount_vnd.toString())
+      } else {
+        setJpyAmount(previewData.send_amount_jpy.toString())
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to calculate transfer preview.')
+      setPreview(null)
+    } finally {
+      setCalculating(false)
+    }
+  }
+
   const handleJPYChange = (value: string) => {
-    setActiveInput('JPY')
     const sanitized = value.replace(/[^0-9]/g, '')
     setJpyAmount(sanitized)
-
-    if (sanitized && exchangeRate > 0) {
-      const jpyNum = parseFloat(sanitized)
-      const vndNum = convertJPYtoVND(jpyNum, exchangeRate)
-      setVndAmount(vndNum.toString())
-    } else {
-      setVndAmount('')
-    }
+    setActiveInput('JPY_INPUT')
+    setVndAmount('')
+    setPreview(null)
   }
 
   const handleVNDChange = (value: string) => {
-    setActiveInput('VND')
     const sanitized = value.replace(/[^0-9]/g, '')
     setVndAmount(sanitized)
+    setActiveInput('VND_INPUT')
+    setJpyAmount('')
+    setPreview(null)
+  }
 
-    if (sanitized && exchangeRate > 0) {
-      const vndNum = parseFloat(sanitized)
-      const jpyNum = convertVNDtoJPY(vndNum, exchangeRate)
-      setJpyAmount(jpyNum.toString())
+  const handlePreview = async () => {
+    if (activeInput === 'JPY_INPUT') {
+      if (jpyAmount && parseFloat(jpyAmount) >= 100) {
+        await fetchPreview('JPY_INPUT', parseFloat(jpyAmount))
+      } else {
+        setError('Minimum transfer amount is ¥100')
+      }
     } else {
-      setJpyAmount('')
+      if (vndAmount && parseFloat(vndAmount) > 0) {
+        await fetchPreview('VND_INPUT', undefined, parseFloat(vndAmount))
+      } else {
+        setError('Please enter a valid amount')
+      }
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!jpyAmount || parseFloat(jpyAmount) < 100) {
@@ -78,32 +111,32 @@ export const TransferForm = ({ onTransactionComplete }: TransferFormProps) => {
       return
     }
 
-    const jpyNum = parseFloat(jpyAmount)
-    const vndNum = parseFloat(vndAmount)
-    const fee = calculateTransferFee(jpyNum)
+    try {
+      setLoading(true)
+      const request = {
+        input_mode: activeInput,
+        ...(activeInput === 'JPY_INPUT'
+          ? { send_amount_jpy: parseFloat(jpyAmount) }
+          : { receive_amount_vnd: parseFloat(vndAmount) })
+      }
 
-    const transaction: Transaction = {
-      id: Date.now().toString(),
-      amountSentJPY: jpyNum,
-      amountReceivedVND: vndNum,
-      exchangeRate,
-      transferFee: fee,
-      timestamp: new Date().toISOString()
+      const transaction = await api.simulateTransfer(request)
+      onTransactionComplete(transaction)
+
+      // Reset form
+      setJpyAmount('')
+      setVndAmount('')
+      setPreview(null)
+      setError('')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to simulate transfer.')
+    } finally {
+      setLoading(false)
     }
-
-    onTransactionComplete(transaction)
-
-    // Reset form
-    setJpyAmount('')
-    setVndAmount('')
-    setError('')
   }
 
-  const jpyNum = jpyAmount ? parseFloat(jpyAmount) : 0
-  const transferFee = jpyNum >= 100 ? calculateTransferFee(jpyNum) : 0
-  const totalCost = jpyNum + transferFee
-
-  if (loading) {
+  if (loading && !exchangeRate) {
     return (
       <div className='bg-white rounded-lg shadow-lg p-8'>
         <div className='flex items-center justify-center'>
@@ -121,7 +154,11 @@ export const TransferForm = ({ onTransactionComplete }: TransferFormProps) => {
         <div className='mt-2 flex items-center gap-2'>
           <span className='text-sm text-gray-500'>Exchange Rate:</span>
           <span className='text-sm font-semibold text-green-600'>1 JPY = {formatNumber(exchangeRate)} VND</span>
-          <button onClick={fetchExchangeRate} className='ml-2 text-blue-600 hover:text-blue-700 text-sm underline'>
+          <button
+            onClick={fetchExchangeRate}
+            className='ml-2 text-blue-600 hover:text-blue-700 text-sm underline'
+            disabled={loading}
+          >
             Refresh
           </button>
         </div>
@@ -141,6 +178,7 @@ export const TransferForm = ({ onTransactionComplete }: TransferFormProps) => {
               onChange={(e) => handleJPYChange(e.target.value)}
               className='w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg'
               placeholder='0'
+              disabled={calculating}
             />
           </div>
           <p className='mt-1 text-xs text-gray-500'>Minimum: ¥100</p>
@@ -149,9 +187,13 @@ export const TransferForm = ({ onTransactionComplete }: TransferFormProps) => {
         {/* Exchange Rate Display */}
         <div className='flex items-center justify-center'>
           <div className='bg-gray-100 rounded-full p-3'>
-            <svg className='w-6 h-6 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 14l-7 7m0 0l-7-7m7 7V3' />
-            </svg>
+            {calculating ? (
+              <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600'></div>
+            ) : (
+              <svg className='w-6 h-6 text-gray-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 14l-7 7m0 0l-7-7m7 7V3' />
+              </svg>
+            )}
           </div>
         </div>
 
@@ -165,30 +207,34 @@ export const TransferForm = ({ onTransactionComplete }: TransferFormProps) => {
               onChange={(e) => handleVNDChange(e.target.value)}
               className='w-full pl-4 pr-12 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg'
               placeholder='0'
+              disabled={calculating}
             />
             <span className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg'>₫</span>
           </div>
         </div>
 
         {/* Fee Breakdown */}
-        {jpyNum >= 100 && (
+        {preview && (
           <div className='bg-gray-50 rounded-lg p-4 space-y-2'>
             <h3 className='font-semibold text-gray-800 mb-3'>Summary</h3>
             <div className='flex justify-between text-sm'>
               <span className='text-gray-600'>Transfer Amount:</span>
-              <span className='font-medium'>{formatCurrency(jpyNum, 'JPY')}</span>
+              <span className='font-medium'>{formatCurrency(preview.send_amount_jpy, 'JPY')}</span>
             </div>
             <div className='flex justify-between text-sm'>
               <span className='text-gray-600'>Transfer Fee:</span>
-              <span className='font-medium'>{formatCurrency(transferFee, 'JPY')}</span>
+              <span className='font-medium'>{formatCurrency(preview.fee_jpy, 'JPY')}</span>
             </div>
             <div className='border-t pt-2 flex justify-between font-semibold'>
               <span className='text-gray-800'>Total Cost:</span>
-              <span className='text-blue-600'>{formatCurrency(totalCost, 'JPY')}</span>
+              <span className='text-blue-600'>{formatCurrency(preview.send_amount_jpy + preview.fee_jpy, 'JPY')}</span>
             </div>
             <div className='border-t pt-2 flex justify-between font-semibold'>
               <span className='text-gray-800'>Recipient Gets:</span>
-              <span className='text-green-600'>{formatCurrency(parseFloat(vndAmount || '0'), 'VND')}</span>
+              <span className='text-green-600'>{formatCurrency(preview.receive_amount_vnd, 'VND')}</span>
+            </div>
+            <div className='text-xs text-gray-500 mt-2'>
+              Exchange Rate: 1 JPY = {preview.rate_jpy_to_vnd.toFixed(4)} VND
             </div>
           </div>
         )}
@@ -217,11 +263,20 @@ export const TransferForm = ({ onTransactionComplete }: TransferFormProps) => {
         </div>
 
         <button
+          type='button'
+          onClick={handlePreview}
+          disabled={(!jpyAmount && !vndAmount) || calculating}
+          className='w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200'
+        >
+          {calculating ? 'Calculating...' : 'Preview Transfer'}
+        </button>
+
+        <button
           type='submit'
-          disabled={!jpyAmount || jpyNum < 100}
+          disabled={!preview || calculating || loading}
           className='w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200'
         >
-          Simulate Transfer
+          {loading ? 'Processing...' : 'Simulate Transfer'}
         </button>
       </form>
     </div>

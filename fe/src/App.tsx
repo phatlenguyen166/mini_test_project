@@ -2,33 +2,35 @@ import { useState, useEffect } from 'react'
 import { TransferForm } from './components/TransferForm'
 import { TransactionHistory } from './components/TransactionHistory'
 import type { Transaction } from './types'
-
+import * as api from './services/api'
 
 function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string>('')
 
-  // Load transactions from localStorage on mount
+  // Load transactions from backend on mount
   useEffect(() => {
-    const savedTransactions = localStorage.getItem('transactions')
-    if (savedTransactions) {
-      try {
-        const parsed = JSON.parse(savedTransactions)
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setTransactions(parsed)
-      } catch (error) {
-        console.error('Error loading transactions:', error)
-      }
-    }
+    fetchTransactionHistory()
   }, [])
 
-  // Save transactions to localStorage whenever they change
-  useEffect(() => {
-    if (transactions.length > 0) {
-      localStorage.setItem('transactions', JSON.stringify(transactions))
+  const fetchTransactionHistory = async () => {
+    try {
+      setLoading(true)
+      const history = await api.getTransactionHistory()
+      setTransactions(history)
+      setError('')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error('Error loading transaction history:', err)
+      setError('Failed to load transaction history from server.')
+    } finally {
+      setLoading(false)
     }
-  }, [transactions])
+  }
 
   const handleTransactionComplete = (transaction: Transaction) => {
+    // Add new transaction to the beginning of the list
     setTransactions((prev) => [transaction, ...prev])
 
     // Show success message
@@ -68,6 +70,14 @@ function App() {
 
       {/* Main Content */}
       <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        {error && (
+          <div className='mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg'>
+            <p className='font-semibold'>⚠️ Backend Connection Issue</p>
+            <p className='text-sm'>{error}</p>
+            <p className='text-sm mt-2'>Make sure the backend server is running at http://localhost:8080</p>
+          </div>
+        )}
+
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
           {/* Left Column - Transfer Form */}
           <div>
@@ -76,7 +86,15 @@ function App() {
 
           {/* Right Column - Transaction History */}
           <div>
-            <TransactionHistory transactions={transactions} />
+            {loading ? (
+              <div className='bg-white rounded-lg shadow-lg p-8'>
+                <div className='flex items-center justify-center'>
+                  <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
+                </div>
+              </div>
+            ) : (
+              <TransactionHistory transactions={transactions} />
+            )}
           </div>
         </div>
 
@@ -85,8 +103,9 @@ function App() {
           <h3 className='font-semibold text-gray-800 mb-2'>Important Notes:</h3>
           <ul className='text-sm text-gray-600 space-y-1 list-disc list-inside'>
             <li>This is a simulation only - no real money transfers occur</li>
-            <li>Exchange rates are fetched in real-time from exchangerate-api.com</li>
-            <li>All transaction history is public and stored locally</li>
+            <li>Exchange rates are fetched in real-time from backend API</li>
+            <li>All calculations are performed on the backend server</li>
+            <li>Transaction history is public and stored in the database</li>
             <li>Minimum transfer amount is ¥100</li>
           </ul>
         </div>

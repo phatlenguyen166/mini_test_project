@@ -1,22 +1,42 @@
-
 import type { Transaction } from '../types'
-import { formatCurrency, formatNumber } from '../utils/calculations'
 
 interface TransactionHistoryProps {
   transactions: Transaction[]
 }
 
+const formatNumber = (num: number): string => {
+  return num.toLocaleString('en-US')
+}
+
+const formatCurrency = (amount: number, currency: 'JPY' | 'VND'): string => {
+  const formatted = formatNumber(amount)
+  return currency === 'JPY' ? `¥${formatted}` : `${formatted} ₫`
+}
+
 export const TransactionHistory = ({ transactions }: TransactionHistoryProps) => {
   const formatDate = (isoString: string) => {
-    const date = new Date(isoString)
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }).format(date)
+    if (!isoString) return 'N/A'
+
+    try {
+      const date = new Date(isoString)
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date'
+      }
+
+      return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(date)
+    } catch (error) {
+      console.error('Error formatting date:', error)
+      return 'Invalid Date'
+    }
   }
 
   if (transactions.length === 0) {
@@ -49,9 +69,17 @@ export const TransactionHistory = ({ transactions }: TransactionHistoryProps) =>
                   </svg>
                 </div>
                 <div>
-                  <p className='text-xs text-gray-500'>{formatDate(transaction.timestamp)}</p>
+                  <p className='text-xs text-gray-500'>{formatDate(transaction.created_at)}</p>
+                  <p className='text-xs text-gray-400'>ID: {transaction.id}</p>
                 </div>
               </div>
+              <span
+                className={`text-xs px-2 py-1 rounded ${
+                  transaction.input_mode === 'JPY_INPUT' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                }`}
+              >
+                {transaction.input_mode === 'JPY_INPUT' ? 'JPY → VND' : 'VND → JPY'}
+              </span>
             </div>
 
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -59,19 +87,19 @@ export const TransactionHistory = ({ transactions }: TransactionHistoryProps) =>
                 <div className='flex justify-between'>
                   <span className='text-sm text-gray-600'>Amount Sent:</span>
                   <span className='text-sm font-semibold text-gray-800'>
-                    {formatCurrency(transaction.amountSentJPY, 'JPY')}
+                    {formatCurrency(transaction.send_amount_jpy, 'JPY')}
                   </span>
                 </div>
                 <div className='flex justify-between'>
                   <span className='text-sm text-gray-600'>Transfer Fee:</span>
                   <span className='text-sm font-semibold text-orange-600'>
-                    {formatCurrency(transaction.transferFee, 'JPY')}
+                    {formatCurrency(transaction.fee_jpy, 'JPY')}
                   </span>
                 </div>
                 <div className='flex justify-between pt-2 border-t'>
                   <span className='text-sm font-semibold text-gray-800'>Total Cost:</span>
                   <span className='text-sm font-bold text-blue-600'>
-                    {formatCurrency(transaction.amountSentJPY + transaction.transferFee, 'JPY')}
+                    {formatCurrency(transaction.send_amount_jpy + transaction.fee_jpy, 'JPY')}
                   </span>
                 </div>
               </div>
@@ -80,13 +108,13 @@ export const TransactionHistory = ({ transactions }: TransactionHistoryProps) =>
                 <div className='flex justify-between'>
                   <span className='text-sm text-gray-600'>Amount Received:</span>
                   <span className='text-sm font-semibold text-green-600'>
-                    {formatCurrency(transaction.amountReceivedVND, 'VND')}
+                    {formatCurrency(transaction.receive_amount_vnd, 'VND')}
                   </span>
                 </div>
                 <div className='flex justify-between'>
                   <span className='text-sm text-gray-600'>Exchange Rate:</span>
                   <span className='text-sm font-semibold text-gray-800'>
-                    1 JPY = {formatNumber(transaction.exchangeRate)} VND
+                    1 JPY = {formatNumber(transaction.rate_jpy_to_vnd)} VND
                   </span>
                 </div>
               </div>
