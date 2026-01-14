@@ -1,0 +1,415 @@
+{
+  "info": {
+    "name": "Transfer Simulation API",
+    "description": "API for simulating money transfers from JPY to VND",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Preview",
+      "item": [
+        {
+          "name": "Preview Transfer (JPY Input)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_mode\": \"JPY_INPUT\",\n  \"send_amount_jpy\": 50000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/preview",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "preview"]
+            },
+            "description": "Preview transfer calculation with JPY amount input"
+          }
+        },
+        {
+          "name": "Preview Transfer (VND Input)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_mode\": \"VND_INPUT\",\n  \"receive_amount_vnd\": 10000000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/preview",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "preview"]
+            },
+            "description": "Preview transfer calculation with VND amount input"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Simulate",
+      "item": [
+        {
+          "name": "Create Simulation (JPY Input - 5,000 JPY)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_mode\": \"JPY_INPUT\",\n  \"send_amount_jpy\": 5000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/simulate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "simulate"]
+            },
+            "description": "Create simulation with 5,000 JPY (Fee: 100 JPY)"
+          }
+        },
+        {
+          "name": "Create Simulation (JPY Input - 25,000 JPY)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_mode\": \"JPY_INPUT\",\n  \"send_amount_jpy\": 25000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/simulate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "simulate"]
+            },
+            "description": "Create simulation with 25,000 JPY (Fee: 400 JPY)"
+          }
+        },
+        {
+          "name": "Create Simulation (JPY Input - 75,000 JPY)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_mode\": \"JPY_INPUT\",\n  \"send_amount_jpy\": 75000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/simulate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "simulate"]
+            },
+            "description": "Create simulation with 75,000 JPY (Fee: 700 JPY)"
+          }
+        },
+        {
+          "name": "Create Simulation (JPY Input - 150,000 JPY)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_mode\": \"JPY_INPUT\",\n  \"send_amount_jpy\": 150000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/simulate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "simulate"]
+            },
+            "description": "Create simulation with 150,000 JPY (Fee: 1,000 JPY)"
+          }
+        },
+        {
+          "name": "Create Simulation (VND Input)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_mode\": \"VND_INPUT\",\n  \"receive_amount_vnd\": 5000000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/simulate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "simulate"]
+            },
+            "description": "Create simulation with desired VND amount"
+          }
+        }
+      ]
+    },
+    {
+      "name": "History",
+      "item": [
+        {
+          "name": "Get All History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "history"]
+            },
+            "description": "Get all simulated transactions (public history)"
+          }
+        },
+        {
+          "name": "Get Single Transaction",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/history/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "history", "1"]
+            },
+            "description": "Get a specific simulation by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Exchange Rate & Fees",
+      "item": [
+        {
+          "name": "Get Current Exchange Rate",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/exchange-rate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "exchange-rate"]
+            },
+            "description": "Get real-time JPY to VND exchange rate"
+          }
+        },
+        {
+          "name": "Get Fee Structure",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/fee-structure",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "fee-structure"]
+            },
+            "description": "Get the fee tier structure"
+          }
+        },
+        {
+          "name": "Calculate Fee (5,000 JPY)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/calculate-fee?amount=5000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "calculate-fee"],
+              "query": [
+                {
+                  "key": "amount",
+                  "value": "5000"
+                }
+              ]
+            },
+            "description": "Calculate fee for 5,000 JPY (Expected: 100 JPY)"
+          }
+        },
+        {
+          "name": "Calculate Fee (25,000 JPY)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/calculate-fee?amount=25000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "calculate-fee"],
+              "query": [
+                {
+                  "key": "amount",
+                  "value": "25000"
+                }
+              ]
+            },
+            "description": "Calculate fee for 25,000 JPY (Expected: 400 JPY)"
+          }
+        },
+        {
+          "name": "Calculate Fee (75,000 JPY)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/calculate-fee?amount=75000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "calculate-fee"],
+              "query": [
+                {
+                  "key": "amount",
+                  "value": "75000"
+                }
+              ]
+            },
+            "description": "Calculate fee for 75,000 JPY (Expected: 700 JPY)"
+          }
+        },
+        {
+          "name": "Calculate Fee (150,000 JPY)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/calculate-fee?amount=150000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "calculate-fee"],
+              "query": [
+                {
+                  "key": "amount",
+                  "value": "150000"
+                }
+              ]
+            },
+            "description": "Calculate fee for 150,000 JPY (Expected: 1,000 JPY)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "Invalid - Amount Below Minimum",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_mode\": \"JPY_INPUT\",\n  \"send_amount_jpy\": 50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/simulate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "simulate"]
+            },
+            "description": "Should return error - minimum is 100 JPY"
+          }
+        },
+        {
+          "name": "Invalid - Missing Input Mode",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"send_amount_jpy\": 50000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/simulate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "simulate"]
+            },
+            "description": "Should return validation error - input_mode is required"
+          }
+        },
+        {
+          "name": "Invalid - JPY Mode without Amount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_mode\": \"JPY_INPUT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/simulate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "simulate"]
+            },
+            "description": "Should return error - sendAmountJpy is required for JPY_INPUT mode"
+          }
+        },
+        {
+          "name": "Invalid - VND Mode without Amount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_mode\": \"VND_INPUT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/simulate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "simulate"]
+            },
+            "description": "Should return error - receiveAmountVnd is required for VND_INPUT mode"
+          }
+        },
+        {
+          "name": "Invalid - Transaction Not Found",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transfer/history/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transfer", "history", "99999"]
+            },
+            "description": "Should return error - simulation not found"
+          }
+        }
+      ]
+    }
+  ]
+}

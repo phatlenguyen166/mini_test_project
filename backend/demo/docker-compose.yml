@@ -12,7 +12,7 @@ services:
     ports:
       - "${MYSQL_PORT:-3306}:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./db/data:/var/lib/mysql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - demo-network
@@ -25,6 +25,7 @@ services:
 
   # Spring Boot Application
   app:
+    image: 21086351huynhkimthanh/demo-app:v1.0.0
     build:
       context: .
       dockerfile: Dockerfile
@@ -36,19 +37,16 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
       SPRING_JPA_SHOW_SQL: ${SPRING_JPA_SHOW_SQL:-true}
       SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQLDialect
+      EXCHANGE_API_KEY: ${EXCHANGE_API_KEY}
       JAVA_OPTS: ${JAVA_OPTS:--Xmx512m -Xms256m}
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - demo-network
-
-volumes:
-  mysql_data:
-    driver: local
 
 networks:
   demo-network:
